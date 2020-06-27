@@ -51,7 +51,6 @@ def scoreHand(hand, cutCard, crib = False):
 
     for i in range(4):
         for j in range(i + 1, 5):
-            print(total, fullHand[i], fullHand[j])
             if fullHand[i] + fullHand[j] == 15:
                 fifteen += 2
             if total - fullHand[i] - fullHand[j] == 15:
@@ -64,6 +63,5 @@ def scoreHand(hand, cutCard, crib = False):
         'run': run,
         'fifteen': fifteen
     }
-    print(result)
 
     return sum(v for v in result.values())
