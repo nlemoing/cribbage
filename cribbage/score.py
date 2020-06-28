@@ -1,10 +1,10 @@
 from itertools import combinations
 
-def scoreHand(hand, cutCard, crib = False):
-    suit = lambda c: c // 13
-    card = lambda c: c % 13
-    valu = lambda c: 10 if card(c) >= 10 else card(c) + 1
-    
+suit = lambda c: c // 13
+card = lambda c: c % 13
+value = lambda c: 10 if card(c) >= 10 else card(c) + 1
+
+def flush(hand, cutCard, crib):
     # Flush points
     flush = 0
     if all(suit(c) == suit(hand[0]) for c in hand):
@@ -13,12 +13,16 @@ def scoreHand(hand, cutCard, crib = False):
         flush += 1
     elif crib:
         flush = 0
+    return flush
 
+def jack(hand, cutCard):
     # Jack point
     jack = 0
     if any(card(c) == 10 and suit(c) == suit(cutCard) for c in hand):
         jack += 1
+    return jack
 
+def pair(hand, cutCard):
     fullHand = sorted(card(c) for c in hand + [cutCard]) 
 
     # Pair points
@@ -27,6 +31,10 @@ def scoreHand(hand, cutCard, crib = False):
         for j in range(i + 1, 5):
             if fullHand[i] == fullHand[j]:
                 pair += 2
+    return pair
+
+def run(hand, cutCard):
+    fullHand = sorted(card(c) for c in hand + [cutCard]) 
 
     # Run points
     run = 0
@@ -36,9 +44,11 @@ def scoreHand(hand, cutCard, crib = False):
                 run += runVal
         if run:
             break
+    return run
 
+def fifteen(hand, cutCard):
     # Fifteen points
-    fullHand = [valu(c) for c in fullHand]
+    fullHand = [value(c) for c in hand + [cutCard]]
     fifteen = 0
     total = sum(fullHand)
     
@@ -55,13 +65,16 @@ def scoreHand(hand, cutCard, crib = False):
                 fifteen += 2
             if total - fullHand[i] - fullHand[j] == 15:
                 fifteen += 2
+    return fifteen
+
+def scoreHand(hand, cutCard, crib = False):
 
     result = { 
-        'flush': flush, 
-        'jack': jack,
-        'pair': pair,
-        'run': run,
-        'fifteen': fifteen
+        'flush': flush(hand, cutCard, crib), 
+        'jack': jack(hand, cutCard),
+        'pair': pair(hand, cutCard),
+        'run': run(hand, cutCard),
+        'fifteen': fifteen(hand, cutCard),
     }
 
     return sum(v for v in result.values())
