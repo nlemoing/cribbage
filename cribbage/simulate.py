@@ -1,5 +1,5 @@
 from cribbage.strategy import Strategy
-from cribbage.score import scoreHand
+from cribbage.score import scoreHand, scorePeg, value
 import pandas as pd
 from random import shuffle
 
@@ -9,6 +9,8 @@ TOTAL_POINTS = 'total_points'
 HAND_POINTS = 'hand_points'
 CRIB_POINTS = 'crib_points'
 PEG_POINTS = 'peg_points'
+
+PEG_CAP = 31
 
 def simulate(strat1: Strategy, strat2: Strategy, games: int, point_cap: int=121) -> pd.DataFrame:
     """
@@ -59,7 +61,51 @@ def game(strat1: Strategy, strat2: Strategy, crib: int, point_cap: int) -> pd.Se
         assert(all(card in options2 for card in hand2))
         crib_hand.extend(card for card in options2 if card not in hand2)
 
-        # TODO: Do pegging here
+        # Set up pegging: no previous cards played, starting with the player
+        # without the crib, and with both player
+        pegging_context = [[]]
+        pegging_turn = 1 - crib
+        pegging_hands = [hand1.copy(), hand2.copy()]
+
+        def pegging_can_play(player: int) -> bool:
+            """
+            Returns whether a player is able to peg.
+            """
+            if not len(pegging_hands[player]):
+                return False
+            pegging_value = sum(value(c) for c, _ in pegging_context[-1])
+            min_card = min(value(c) for c in pegging_hands[player])
+            return pegging_value + min_card <= PEG_CAP
+
+        # While both players have cards remaining, peg
+        while all(len(h) for h in pegging_hands):
+
+            if pegging_can_play(pegging_turn):
+
+                # Get a card using the strategy and ensure it was in the player's hand
+                strat = strat1 if pegging_turn == 0 else strat2
+                card = strat.peg(pegging_hands[pegging_turn], pegging_turn, pegging_context)
+                assert(card in pegging_hands[pegging_turn])
+
+                # Remove the card from the hand and add it to the context
+                pegging_hands[pegging_turn].remove(card)
+                pegging_context[-1].append((card, pegging_turn))
+
+                # Score based on the context
+                scores[pegging_turn][PEG_POINTS] += scorePeg(pegging_context[-1])
+    
+            # If neither player can play, then add a go for the player whose
+            # turn it is, push a new context and reset
+            elif not pegging_can_play(1 - pegging_turn):
+                # The player whose turn it is gets to go, since when neither
+                # player can play, the person whose turn it is played last
+                scores[pegging_turn][PEG_POINTS] += 1
+
+                # Add a new pegging context
+                pegging_context.append([])
+            
+            # Switch the turn 
+            pegging_turn = 1 - pegging_turn
 
         # Score the hands here
         hand_points = [scoreHand(hand1, cutCard, 1 - crib), scoreHand(hand2, cutCard, crib)]

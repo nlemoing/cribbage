@@ -1,10 +1,11 @@
 from itertools import combinations
+from typing import List, Tuple
 
 suit = lambda c: c // 13
 card = lambda c: c % 13
 value = lambda c: 10 if card(c) >= 10 else card(c) + 1
 
-def flush(hand, cutCard, crib):
+def flush(hand: List[int], cutCard: int, crib: bool) -> int:
     # Flush points
     flush = 0
     if all(suit(c) == suit(hand[0]) for c in hand):
@@ -15,14 +16,14 @@ def flush(hand, cutCard, crib):
         flush = 0
     return flush
 
-def jack(hand, cutCard):
+def jack(hand: List[int], cutCard: int):
     # Jack point
     jack = 0
     if any(card(c) == 10 and suit(c) == suit(cutCard) for c in hand):
         jack += 1
     return jack
 
-def pair(hand, cutCard):
+def pair(hand: List[int], cutCard: int) -> int:
     fullHand = sorted(card(c) for c in hand + [cutCard]) 
 
     # Pair points
@@ -33,7 +34,7 @@ def pair(hand, cutCard):
                 pair += 2
     return pair
 
-def run(hand, cutCard):
+def run(hand: List[int], cutCard: int) -> int:
     fullHand = sorted(card(c) for c in hand + [cutCard]) 
 
     # Run points
@@ -46,7 +47,7 @@ def run(hand, cutCard):
             break
     return run
 
-def fifteen(hand, cutCard):
+def fifteen(hand: List[int], cutCard: int) -> int:
     # Fifteen points
     fullHand = [value(c) for c in hand + [cutCard]]
     fifteen = 0
@@ -67,7 +68,7 @@ def fifteen(hand, cutCard):
                 fifteen += 2
     return fifteen
 
-def scoreHand(hand, cutCard, crib = False):
+def scoreHand(hand: List[int], cutCard: int, crib: bool = False):
 
     result = { 
         'flush': flush(hand, cutCard, crib), 
@@ -78,3 +79,6 @@ def scoreHand(hand, cutCard, crib = False):
     }
 
     return sum(v for v in result.values())
+
+def scorePeg(peggingContext: List[Tuple[int]]) -> int:
+    return 0

@@ -21,7 +21,7 @@ class Strategy:
         """
         return sample(options, 4)
 
-    def peg(self, hand: List[int], previousCards: List[List[Tuple[int]]]) -> int:
+    def peg(self, hand: List[int], player: int, previousCards: List[List[Tuple[int]]]) -> int:
         """
         peg takes a hand and a set of previous cards that were played. Peg will
         only be called when a move is possible (e.g. a go is not forced). hand
@@ -29,7 +29,7 @@ class Strategy:
         returns should be part of hand (we'll check!). previousCards is a list
         of previously played cards, grouped by 31s (each time 31 is reached, a
         new list is added). Each tuple is a pair containing a card and a player
-        number (0 if the opponent, 1 otherwise).
+        number.
         The default is to choose a random element of hand.
         """
         return choice(hand)
