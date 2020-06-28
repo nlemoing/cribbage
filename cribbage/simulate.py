@@ -62,7 +62,7 @@ def game(strat1: Strategy, strat2: Strategy, crib: int, point_cap: int) -> pd.Se
         # TODO: Do pegging here
 
         # Score the hands here
-        hand_points = [scoreHand(hand1, cutCard), scoreHand(hand2, cutCard)]
+        hand_points = [scoreHand(hand1, cutCard, 1 - crib), scoreHand(hand2, cutCard, crib)]
         crib_points  = scoreHand(crib_hand,  cutCard)
         
         # The person without the crib alwa gets the chance to score their 
