@@ -92,14 +92,19 @@ def game(strat1: Strategy, strat2: Strategy, crib: int, point_cap: int) -> pd.Se
                 pegging_context[-1].append((card, pegging_turn))
 
                 # Score based on the context
-                scores[pegging_turn][PEG_POINTS] += scorePeg(pegging_context[-1])
+                scores[pegging_turn][PEG_POINTS] += scorePeg([c for c, _ in pegging_context[-1]])
     
             # If neither player can play, then add a go for the player whose
             # turn it is, push a new context and reset
             elif not pegging_can_play(1 - pegging_turn):
                 # The player whose turn it is gets to go, since when neither
-                # player can play, the person whose turn it is played last
-                scores[pegging_turn][PEG_POINTS] += 1
+                # player can play, the person whose turn it is played last.
+                # They receive 2 points for reaching 31 exactly and 1 point
+                # otherwise.
+                if sum(value(c) for c, _ in pegging_context[-1]) == 31:
+                    scores[pegging_turn][PEG_POINTS] += 2
+                else:
+                    scores[pegging_turn][PEG_POINTS] += 1
 
                 # Add a new pegging context
                 pegging_context.append([])
