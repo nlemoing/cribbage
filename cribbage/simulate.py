@@ -15,7 +15,7 @@ JACK_POINTS = 'jack_points'
 
 PEG_CAP = 31
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.DEBUG, format='%(message)s')
 logger = logging.getLogger('cribbage')
 
 def simulate(strat1: Strategy, strat2: Strategy, games: int, point_cap: int=121) -> pd.DataFrame:
