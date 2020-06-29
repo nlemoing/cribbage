@@ -1,5 +1,4 @@
 from typing import List, Tuple
-from random import choice, sample
 
 class Strategy:
     """
@@ -17,9 +16,8 @@ class Strategy:
         of 4 cards that are kept. The list should be made up of the same
         elements as were in the original list, but this can't be enforced here
         so we'll also do sanity checks when running simulations. 
-        The default is to choose a random partition.
         """
-        return sample(options, 4)
+        pass
 
     def peg(self, hand: List[int], player: int, previousCards: List[List[Tuple[int]]]) -> int:
         """
@@ -30,6 +28,5 @@ class Strategy:
         of previously played cards, grouped by 31s (each time 31 is reached, a
         new list is added). Each tuple is a pair containing a card and a player
         number.
-        The default is to choose a random element of hand.
         """
-        return choice(hand)
+        pass

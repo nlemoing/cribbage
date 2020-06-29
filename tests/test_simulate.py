@@ -1,4 +1,4 @@
-from cribbage.strategy import Strategy
+from cribbage.strategies import RandomStrategy
 from cribbage.simulate import simulate, TOTAL_POINTS
 
 def test_end_to_end():
@@ -9,8 +9,8 @@ def test_end_to_end():
     code makes sense, but serves as a smoke test to make sure no glaring errors
     are happening.
     """
-    strat1 = Strategy()
-    strat2 = Strategy()
+    strat1 = RandomStrategy()
+    strat2 = RandomStrategy()
     games = 10
     point_cap = 100
     df = simulate(strat1, strat2, games, point_cap=point_cap)
