@@ -18,6 +18,7 @@ PEG_CAP = 31
 
 logging.basicConfig(level=logging.DEBUG, format='%(message)s')
 logger = logging.getLogger('cribbage')
+logger.setLevel(logging.INFO)
 
 def simulate(strat1: Strategy, strat2: Strategy, games: int, point_cap: int=121) -> pd.DataFrame:
     """
@@ -125,7 +126,7 @@ def game(strat1: Strategy, strat2: Strategy, crib: int, point_cap: int, verbose:
         if "J" in formatCard(cutCard) and game_context.add_points(game_context.crib, JACK_POINTS, 2):
             break
 
-        if peg(game_context, [strat1, strat2], [hand1.copy(), hand2.copy()], game_context.crib):
+        if peg(game_context, [strat1, strat2], [hand1.copy(), hand2.copy()]):
             break
 
         # Score the hands here
@@ -184,8 +185,17 @@ class PeggingContext:
         """
         return [c for c in hand if self.total() + value(c) <= PEG_CAP]
 
-def peg(game_context: GameContext, strategies: List[Strategy], hands: List[List[int]], crib: int) -> bool:
-    pegging_context = PeggingContext(crib)
+def peg(game_context: GameContext, strategies: List[Strategy], hands: List[List[int]]) -> bool:
+    """
+    peg takes care of the pegging sub-game before scoring the actual hands. It
+    takes a GameContext, strategies and hands. While players have cards to
+    play, it alternates between the players and prompts them to choose a card
+    to play, up to a maximum value of 31. If neither player can play, the
+    context starts over from 0. If either player reaches the point cap
+    specified by the game context, the function should immediately return True
+    without playing any more cards.
+    """
+    pegging_context = PeggingContext(game_context.crib)
 
     # While both players have cards remaining, peg
     logger.info("Pegging\n")
