@@ -43,13 +43,14 @@ class GameContext:
         updating the turn, switching the crib, dealing two hands of 6 and
         the cut card.
         """
+        if self.turns:
+            self.crib = 1 - self.crib
+        self.turns += 1
+
         logger.info(f"Turn {self.turns}: player {self.crib + 1}'s crib.")
         logger.info(f"Player 1 score: {sum(self.scores[0])}")
         logger.info(f"Player 2 score: {sum(self.scores[1])}\n")
 
-        if self.turns:
-            self.crib = 1 - self.crib
-        self.turns += 1
         shuffle(self.deck)
         return self.deck[0:6], self.deck[6:12], self.deck[12]
 
@@ -121,23 +122,26 @@ def game(strat1: Strategy, strat2: Strategy, crib: int, point_cap: int, verbose:
         crib_hand.extend(card for card in options2 if card not in hand2)
 
         logger.info(f"{formatCard(cutCard)} was cut.\n")
-        if "J" in formatCard(cutCard) and game_context.add_points(crib, JACK_POINTS, 2):
+        if "J" in formatCard(cutCard) and game_context.add_points(game_context.crib, JACK_POINTS, 2):
             break
 
-        if peg(game_context, [strat1, strat2], [hand1.copy(), hand2.copy()], crib):
+        if peg(game_context, [strat1, strat2], [hand1.copy(), hand2.copy()], game_context.crib):
             break
 
         # Score the hands here
-        hand_points = [scoreHand(hand1, cutCard, 1 - crib), scoreHand(hand2, cutCard, crib)]
+        hand_points = [
+            scoreHand(hand1, cutCard, 1 - game_context.crib),
+            scoreHand(hand2, cutCard, game_context.crib)
+        ]
         crib_points  = scoreHand(crib_hand,  cutCard)
         
         # The person without the crib always gets the chance to score their 
         # hand first. We'll also check for a win condition after every addition
         # using the add_points hand. If any of them returns True, the
         # expression will short-circuit before the rest complete.
-        if game_context.add_points(1 - crib, HAND_POINTS, hand_points[1 - crib]) or \
-           game_context.add_points(crib, HAND_POINTS, hand_points[crib]) or \
-           game_context.add_points(crib, CRIB_POINTS, crib_points):
+        if game_context.add_points(1 - game_context.crib, HAND_POINTS, hand_points[1 - game_context.crib]) or \
+           game_context.add_points(game_context.crib, HAND_POINTS, hand_points[game_context.crib]) or \
+           game_context.add_points(game_context.crib, CRIB_POINTS, crib_points):
             break
     
     return game_context.finish_game()
