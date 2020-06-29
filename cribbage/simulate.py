@@ -4,6 +4,7 @@ from cribbage.io import formatCard
 import pandas as pd
 from random import shuffle
 import logging
+from typing import List
 
 TURNS = 'turns'
 WINNER = 'winner'
@@ -27,6 +28,66 @@ def simulate(strat1: Strategy, strat2: Strategy, games: int, point_cap: int=121)
     """
     return pd.DataFrame(game(strat1, strat2, game_number % 2, point_cap) for game_number in range(games))
 
+START_DICT = { k: 0 for k in (HAND_POINTS, CRIB_POINTS, PEG_POINTS, JACK_POINTS) }
+class GameContext:
+    def __init__(self, crib, point_cap):
+        self.scores = [pd.Series(START_DICT), pd.Series(START_DICT)]
+        self.deck = list(range(52))
+        self.crib = crib
+        self.turns = 0
+        self.point_cap = point_cap
+    
+    def new_turn(self) -> (List[int], List[int], int):
+        """
+        new_turn handles the logic of going to the next turn. This includes
+        updating the turn, switching the crib, dealing two hands of 6 and
+        the cut card.
+        """
+        logger.info(f"Turn {self.turns}: player {self.crib + 1}'s crib.")
+        logger.info(f"Player 1 score: {sum(self.scores[0])}")
+        logger.info(f"Player 2 score: {sum(self.scores[1])}\n")
+
+        if self.turns:
+            self.crib = 1 - self.crib
+        self.turns += 1
+        shuffle(self.deck)
+        return self.deck[0:6], self.deck[6:12], self.deck[12]
+
+    def add_points(self, player: int, game_section: str, points: int) -> bool:
+        """
+        add_points adds the specified number of points to the player's hand.
+        It returns True if the player has surpassed the number of points
+        required to win and False otherwise.
+        """
+        if not points:
+            return False
+
+        if game_section == HAND_POINTS:
+            logger.info(f"Player {player + 1} scored {points} in their hand.")
+        elif game_section == CRIB_POINTS: 
+            logger.info(f"Player {player + 1} scored {points} in their crib.")
+        elif game_section == PEG_POINTS:
+            logger.info(f"Player {player + 1} scored {points} by pegging.")
+        elif game_section == JACK_POINTS:
+            logger.info(f"Player {player + 1} scored {points} when the Jack was cut.")
+
+        self.scores[player][game_section] += points
+        return sum(self.scores[player]) >= self.point_cap
+
+    def finish_game(self) -> pd.Series:
+        """
+        Perform all post-game cleanup and return a Series summarizing the game.
+        """
+        for strat in (0, 1):
+            self.scores[strat][TOTAL_POINTS] = min(self.point_cap, sum(self.scores[strat]))
+            self.scores[strat][WINNER] = self.scores[strat][TOTAL_POINTS] == self.point_cap
+            if self.scores[strat][WINNER]:
+                logger.info(f"\nGame over. Player {strat + 1} wins!")
+
+        result = pd.Series({ f'strat{p+1}_{k}': v for p, d in enumerate(self.scores) for k, v in d.iteritems() })
+        result[TURNS] = self.turns
+        return result
+
 def game(strat1: Strategy, strat2: Strategy, crib: int, point_cap: int, verbose: bool = False) -> pd.Series:
     """
     This function takes care of actual game simulation. crib is 1 if strat2
@@ -43,40 +104,11 @@ def game(strat1: Strategy, strat2: Strategy, crib: int, point_cap: int, verbose:
     else:
         logger.setLevel(logging.WARN)
 
-    START_DICT = { k: 0 for k in (HAND_POINTS, CRIB_POINTS, PEG_POINTS, JACK_POINTS) }
-    scores = [pd.Series(START_DICT), pd.Series(START_DICT)]
-    deck = list(range(52))
-    turns = 0
-
-    def add_points(player: int, game_section: str, points: int) -> bool:
-        """
-        add_points adds the specified number of points to the player's hand.
-        It returns True if the player has surpassed the number of points
-        required to win and False otherwise.
-        """
-        if not points:
-            return
-
-        if game_section == HAND_POINTS:
-            logger.info(f"Player {player + 1} scored {points} in their hand.")
-        elif game_section == CRIB_POINTS: 
-            logger.info(f"Player {player + 1} scored {points} in their crib.")
-        elif game_section == PEG_POINTS:
-            logger.info(f"Player {player + 1} scored {points} by pegging.")
-        elif game_section == JACK_POINTS:
-            logger.info(f"Player {player + 1} scored {points} when the Jack was cut.")
-
-        scores[player][game_section] += points
-        return sum(scores[player]) >= point_cap
+    game_context = GameContext(crib, point_cap)
 
     while True:
-        logger.info(f"Turn {turns + 1}: player {crib + 1}'s crib.")
-        logger.info(f"Player 1 score: {sum(scores[0])}")
-        logger.info(f"Player 2 score: {sum(scores[1])}\n")
-
-        shuffle(deck)
+        options1, options2, cutCard = game_context.new_turn()
         crib_hand = []
-        options1, options2, cutCard = deck[0:6], deck[6:12], deck[12]
 
         # Choose strat1 hand
         hand1 = strat1.chooseHand(options1)
@@ -89,7 +121,7 @@ def game(strat1: Strategy, strat2: Strategy, crib: int, point_cap: int, verbose:
         crib_hand.extend(card for card in options2 if card not in hand2)
 
         logger.info(f"{formatCard(cutCard)} was cut.\n")
-        if "J" in formatCard(cutCard) and add_points(crib, JACK_POINTS, 2):
+        if "J" in formatCard(cutCard) and game_context.add_points(crib, JACK_POINTS, 2):
             break
 
         # Set up pegging: no previous cards played, starting with the player
@@ -140,7 +172,7 @@ def game(strat1: Strategy, strat2: Strategy, crib: int, point_cap: int, verbose:
                 # Score based on the context
                 play_score = scorePeg([c for c, _ in pegging_context[-1]])
                 logger.info(f"Player {pegging_turn + 1} played {formatCard(card)}.")
-                if add_points(pegging_turn, PEG_POINTS, play_score):
+                if game_context.add_points(pegging_turn, PEG_POINTS, play_score):
                     game_over = True
                     break
     
@@ -151,7 +183,7 @@ def game(strat1: Strategy, strat2: Strategy, crib: int, point_cap: int, verbose:
                 # otherwise.
                 logger.info(f"No one can play (total: {ctx}). Go for Player {2 - pegging_turn}.\n")
 
-                if add_points(1 - pegging_turn, PEG_POINTS, 2 if ctx == 31 else 1):
+                if game_context.add_points(1 - pegging_turn, PEG_POINTS, 2 if ctx == 31 else 1):
                     game_over = True
                     break
 
@@ -169,7 +201,7 @@ def game(strat1: Strategy, strat2: Strategy, crib: int, point_cap: int, verbose:
                 if context_value():
                     logger.info(f"No one can play (total: {context_value()}). Player {2 - pegging_turn} to go.")
 
-                    if add_points(1 - pegging_turn, PEG_POINTS, 1):
+                    if game_context.add_points(1 - pegging_turn, PEG_POINTS, 1):
                         game_over = True
                 break
 
@@ -184,21 +216,9 @@ def game(strat1: Strategy, strat2: Strategy, crib: int, point_cap: int, verbose:
         # hand first. We'll also check for a win condition after every addition
         # using the add_points hand. If any of them returns True, the
         # expression will short-circuit before the rest complete.
-        if add_points(1 - crib, HAND_POINTS, hand_points[1 - crib]) or \
-           add_points(crib, HAND_POINTS, hand_points[crib]) or \
-           add_points(crib, CRIB_POINTS, crib_points):
+        if game_context.add_points(1 - crib, HAND_POINTS, hand_points[1 - crib]) or \
+           game_context.add_points(crib, HAND_POINTS, hand_points[crib]) or \
+           game_context.add_points(crib, CRIB_POINTS, crib_points):
             break
-
-        # Switch the crib and increment the turn counter
-        crib = 1 - crib
-        turns += 1
     
-    for strat in (0, 1):
-        scores[strat][TOTAL_POINTS] = min(point_cap, sum(scores[strat]))
-        scores[strat][WINNER] = scores[strat][TOTAL_POINTS] == point_cap
-        if scores[strat][WINNER]:
-            logger.info(f"\nGame over. Player {strat + 1} wins!")
-
-    result = pd.Series({ f'strat{p+1}_{k}': v for p, d in enumerate(scores) for k, v in d.iteritems() })
-    result[TURNS] = turns
-    return result
+    return game_context.finish_game()
