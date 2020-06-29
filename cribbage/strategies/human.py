@@ -10,10 +10,10 @@ class HumanStrategy(Strategy):
 
     def chooseHand(self, options: List[int]) -> List[int]:
         print("Choose your hand by typing the numbers corresponding to the cards you want, separated by spaces.")
-        chosen = input(" ".join(f"{formatCard(options[i])}: {i}" for i in range(len(options))))
+        chosen = input("\n".join(f"{i}: {formatCard(options[i])}" for i in range(len(options))) + "\n")
         return [options[int(option)] for option in chosen.split(" ")] 
 
     def peg(self, hand: List[int], player: int, previousCards: List[List[Tuple[int]]]) -> int:
         print("Choose the card to play by typing the number corresponding to the card you want.")
-        chosen = input(" ".join(f"{formatCard(options[i])}: {i}" for i in range(len(hand))))
+        chosen = input("\n".join(f"{i}: {formatCard(hand[i])}" for i in range(len(hand))) + "\n")
         return hand[int(chosen)]
