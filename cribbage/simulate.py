@@ -124,88 +124,7 @@ def game(strat1: Strategy, strat2: Strategy, crib: int, point_cap: int, verbose:
         if "J" in formatCard(cutCard) and game_context.add_points(crib, JACK_POINTS, 2):
             break
 
-        # Set up pegging: no previous cards played, starting with the player
-        # without the crib, and with both player
-        pegging_context = [[]]
-        pegging_turn = 1 - crib
-        pegging_hands = [hand1.copy(), hand2.copy()]
-
-        def context_value() -> int:
-            """
-            Returns the current total of the pegging context.
-            """
-            return sum(value(c) for c, _ in pegging_context[-1])
-
-        def pegging_can_play(player: int) -> bool:
-            """
-            Returns whether a player is able to peg.
-            """
-            if not len(pegging_hands[player]):
-                return False
-            min_card = min(value(c) for c in pegging_hands[player])
-            return context_value() + min_card <= PEG_CAP
-
-        # While both players have cards remaining, peg
-        game_over = False
-        logger.info("Pegging\n")
-        while True:
-
-            ctx = context_value()
-            logger.info(f"Player {pegging_turn + 1} to play (total: {ctx}).")
-
-            if pegging_can_play(pegging_turn):
-
-                # Get a card using the strategy and ensure it was in the player's hand
-                strat = strat1 if pegging_turn == 0 else strat2
-                card = strat.peg(
-                    # Only provide options that will fit under the pegging cap
-                    [c for c in pegging_hands[pegging_turn] if value(c) + ctx <= PEG_CAP],
-                    pegging_turn,
-                    pegging_context
-                )
-                assert(card in pegging_hands[pegging_turn])
-
-                # Remove the card from the hand and add it to the context
-                pegging_hands[pegging_turn].remove(card)
-                pegging_context[-1].append((card, pegging_turn))
-
-                # Score based on the context
-                play_score = scorePeg([c for c, _ in pegging_context[-1]])
-                logger.info(f"Player {pegging_turn + 1} played {formatCard(card)}.")
-                if game_context.add_points(pegging_turn, PEG_POINTS, play_score):
-                    game_over = True
-                    break
-    
-            elif not pegging_can_play(1 - pegging_turn):
-                # The player whose turn it isn't gets to go, since when neither
-                # player can play, the person whose turn it isn't played last.
-                # They receive 2 points for reaching 31 exactly and 1 point
-                # otherwise.
-                logger.info(f"No one can play (total: {ctx}). Go for Player {2 - pegging_turn}.\n")
-
-                if game_context.add_points(1 - pegging_turn, PEG_POINTS, 2 if ctx == 31 else 1):
-                    game_over = True
-                    break
-
-                # Add a new pegging context
-                pegging_context.append([])
-
-            else:
-                logger.info(f"Player {pegging_turn+1} could not play.")
-
-            # Switch the turn 
-            pegging_turn = 1 - pegging_turn
-
-            if not any(len(h) for h in pegging_hands):
-                # If players run out of cards to play and a go wasn't just given, add it here
-                if context_value():
-                    logger.info(f"No one can play (total: {context_value()}). Player {2 - pegging_turn} to go.")
-
-                    if game_context.add_points(1 - pegging_turn, PEG_POINTS, 1):
-                        game_over = True
-                break
-
-        if game_over:
+        if peg(game_context, [strat1, strat2], [hand1.copy(), hand2.copy()], crib):
             break
 
         # Score the hands here
@@ -222,3 +141,84 @@ def game(strat1: Strategy, strat2: Strategy, crib: int, point_cap: int, verbose:
             break
     
     return game_context.finish_game()
+
+class PeggingContext:
+    def __init__(self, crib: int):
+        self.ctx = [[]]
+        self.ctx_value = 0
+        self.turn = 1 - crib
+
+    def switch_turn(self):
+        self.turn = 1 - self.turn
+
+    def total(self) -> int:
+        return self.ctx_value
+
+    def cards_played(self) -> List[int]:
+        """
+        Get the cards played in the current play for scoring.
+        """
+        return [c for c, _ in self.ctx[-1]]
+
+    def add(self, card):
+        """
+        Adds a card to the current play and updates the total value.
+        """
+        self.ctx[-1].append((card, self.turn))
+        self.ctx_value += value(card)
+
+    def reset(self):
+        """
+        Resets the current play.
+        """
+        self.ctx_value = 0
+        self.ctx.append([])
+
+    def can_play(self, hand: List[int]) -> List[int]:
+        """
+        Takes a hand and returns a list of cards that are playable given the context
+        """
+        return [c for c in hand if self.total() + value(c) <= PEG_CAP]
+
+def peg(game_context: GameContext, strategies: List[Strategy], hands: List[List[int]], crib: int) -> bool:
+    pegging_context = PeggingContext(crib)
+
+    # While both players have cards remaining, peg
+    logger.info("Pegging\n")
+    while any(len(hand) for hand in hands):
+
+        logger.info(f"Player {pegging_context.turn + 1} to play (total: {pegging_context.total()}).")
+
+        # Get a list of options for the active player and if they have options,
+        # allow them to choose
+        options = pegging_context.can_play(hands[pegging_context.turn]) 
+        if len(options):
+            # Get a card using the strategy and ensure it was in the player's hand
+            strategy = strategies[pegging_context.turn]
+            card = strategy.peg(options, pegging_context.turn, pegging_context.ctx)
+            assert(card in hands[pegging_context.turn])
+
+            # Remove the card from the hand and add it to the context
+            hands[pegging_context.turn].remove(card)
+            pegging_context.add(card)
+
+            # Score based on the context
+            play_score = scorePeg(pegging_context.cards_played())
+            logger.info(f"Player {pegging_context.turn + 1} played {formatCard(card)}.")
+            if game_context.add_points(pegging_context.turn, PEG_POINTS, play_score):
+                return True
+
+        # After the first player has played, check if both players cannot play.
+        # If not, then add a go for the player who just played.
+        if not any(pegging_context.can_play(hand) for hand in hands):
+            ctx = pegging_context.total()
+            logger.info(f"No one can play (total: {ctx}). Go for Player {pegging_context.turn + 1}.\n")
+            if game_context.add_points(pegging_context.turn, PEG_POINTS, 2 if ctx == 31 else 1):
+                return True
+
+            # Add a new pegging context
+            pegging_context.reset()
+
+        # Switch the turn 
+        pegging_context.switch_turn()
+    return False
