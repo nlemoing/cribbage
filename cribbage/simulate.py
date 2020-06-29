@@ -10,6 +10,7 @@ TOTAL_POINTS = 'total_points'
 HAND_POINTS = 'hand_points'
 CRIB_POINTS = 'crib_points'
 PEG_POINTS = 'peg_points'
+JACK_POINTS = 'jack_points'
 
 PEG_CAP = 31
 
@@ -33,7 +34,7 @@ def game(strat1: Strategy, strat2: Strategy, crib: int, point_cap: int, verbose:
      - strat1_peg: the number of points strat1 gained from pegging
      - ... all the same fields for strat2 ...
     """
-    START_DICT = { k: 0 for k in (HAND_POINTS, CRIB_POINTS, PEG_POINTS) }
+    START_DICT = { k: 0 for k in (HAND_POINTS, CRIB_POINTS, PEG_POINTS, JACK_POINTS) }
     scores = [pd.Series(START_DICT), pd.Series(START_DICT)]
     deck = list(range(52))
     turns = 0
@@ -48,10 +49,17 @@ def game(strat1: Strategy, strat2: Strategy, crib: int, point_cap: int, verbose:
         It returns True if the player has surpassed the number of points
         required to win and False otherwise.
         """
+        if not points:
+            return
+
         if game_section == HAND_POINTS:
-            printif(f"Player {player + 1} scored {points} in their hand")
+            printif(f"Player {player + 1} scored {points} in their hand,")
         elif game_section == CRIB_POINTS: 
-            printif(f"Player {player + 1} scored {points} in their crib")
+            printif(f"Player {player + 1} scored {points} in their crib.")
+        elif game_section == PEG_POINTS:
+            printif(f"Player {player + 1} scored {points} by pegging.")
+        elif game_section == JACK_POINTS:
+            printif(f"Player {player + 1} scored {points} when the Jack was cut.")
 
         scores[player][game_section] += points
         return sum(scores[player]) >= point_cap
@@ -77,6 +85,8 @@ def game(strat1: Strategy, strat2: Strategy, crib: int, point_cap: int, verbose:
         crib_hand.extend(card for card in options2 if card not in hand2)
 
         printif(f"\n{formatCard(cutCard)} was cut.")
+        if "J" in formatCard(cutCard) and add_points(crib, JACK_POINTS, 2):
+            break
 
         # Set up pegging: no previous cards played, starting with the player
         # without the crib, and with both player
@@ -101,10 +111,11 @@ def game(strat1: Strategy, strat2: Strategy, crib: int, point_cap: int, verbose:
 
         # While both players have cards remaining, peg
         game_over = False
-        printif()
+        printif("Pegging")
         while True:
 
-            printif(f"Pegging: player {pegging_turn + 1} to play (total: {context_value()}).")
+            ctx = context_value()
+            printif(f"Player {pegging_turn + 1} to play (total: {ctx}).")
 
             if pegging_can_play(pegging_turn):
 
@@ -112,7 +123,7 @@ def game(strat1: Strategy, strat2: Strategy, crib: int, point_cap: int, verbose:
                 strat = strat1 if pegging_turn == 0 else strat2
                 card = strat.peg(
                     # Only provide options that will fit under the pegging cap
-                    [c for c in pegging_hands[pegging_turn] if value(c) + context_value() <= PEG_CAP],
+                    [c for c in pegging_hands[pegging_turn] if value(c) + ctx <= PEG_CAP],
                     pegging_turn,
                     pegging_context
                 )
@@ -124,7 +135,6 @@ def game(strat1: Strategy, strat2: Strategy, crib: int, point_cap: int, verbose:
 
                 # Score based on the context
                 play_score = scorePeg([c for c, _ in pegging_context[-1]])
-                printif(f"Player {pegging_turn+1} played {formatCard(card)}, scoring {play_score}.")
                 if add_points(pegging_turn, PEG_POINTS, play_score):
                     game_over = True
                     break
@@ -134,9 +144,9 @@ def game(strat1: Strategy, strat2: Strategy, crib: int, point_cap: int, verbose:
                 # player can play, the person whose turn it isn't played last.
                 # They receive 2 points for reaching 31 exactly and 1 point
                 # otherwise.
-                printif(f"No one can play (total: {context_value()}). Player {2 - pegging_turn} to go.")
+                printif(f"No one can play (total: {ctx}). Player {2 - pegging_turn} to go.\n")
 
-                if add_points(1 - pegging_turn, PEG_POINTS, 2 if context_value() == 31 else 1):
+                if add_points(1 - pegging_turn, PEG_POINTS, 2 if ctx == 31 else 1):
                     game_over = True
                     break
                 
@@ -158,7 +168,6 @@ def game(strat1: Strategy, strat2: Strategy, crib: int, point_cap: int, verbose:
 
                     if add_points(1 - pegging_turn, PEG_POINTS, 1):
                         game_over = True
-                        break
                 break
 
         if game_over:
@@ -186,7 +195,7 @@ def game(strat1: Strategy, strat2: Strategy, crib: int, point_cap: int, verbose:
         scores[strat][TOTAL_POINTS] = min(point_cap, sum(scores[strat]))
         scores[strat][WINNER] = scores[strat][TOTAL_POINTS] == point_cap
         if scores[strat][WINNER]:
-            printif(f"Game over. Player {strat + 1} wins!")
+            printif(f"\nGame over. Player {strat + 1} wins!")
 
     result = pd.Series({ f'strat{p+1}_{k}': v for p, d in enumerate(scores) for k, v in d.iteritems() })
     result[TURNS] = turns
