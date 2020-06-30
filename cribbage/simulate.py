@@ -1,5 +1,6 @@
 from cribbage.strategy import Strategy
 from cribbage.score import scoreHand, scorePeg, value
+from cribbage.deck import Deck, RandomDeck
 from cribbage.io import formatCard
 import pandas as pd
 from random import shuffle
@@ -31,9 +32,9 @@ def simulate(strat1: Strategy, strat2: Strategy, games: int, point_cap: int=121)
 
 START_DICT = { k: 0 for k in (HAND_POINTS, CRIB_POINTS, PEG_POINTS, JACK_POINTS) }
 class GameContext:
-    def __init__(self, crib, point_cap):
+    def __init__(self, crib: int, point_cap: int, deck: Deck):
         self.scores = [pd.Series(START_DICT), pd.Series(START_DICT)]
-        self.deck = list(range(52))
+        self.deck = deck
         self.crib = crib
         self.turns = 0
         self.point_cap = point_cap
@@ -52,8 +53,7 @@ class GameContext:
         logger.info(f"Player 1 score: {sum(self.scores[0])}")
         logger.info(f"Player 2 score: {sum(self.scores[1])}\n")
 
-        shuffle(self.deck)
-        return self.deck[0:6], self.deck[6:12], self.deck[12]
+        return self.deck.deal()
 
     def add_points(self, player: int, game_section: str, points: int) -> bool:
         """
@@ -106,7 +106,7 @@ def game(strat1: Strategy, strat2: Strategy, crib: int, point_cap: int, verbose:
     else:
         logger.setLevel(logging.WARN)
 
-    game_context = GameContext(crib, point_cap)
+    game_context = GameContext(crib, point_cap, RandomDeck())
 
     while True:
         options1, options2, cutCard = game_context.new_turn()
