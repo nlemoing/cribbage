@@ -1,5 +1,6 @@
 from cribbage.strategies import RandomStrategy
-from cribbage.simulate import simulate, TOTAL_POINTS
+from cribbage.simulate import simulate
+from cribbage.constants import TOTAL_POINTS
 
 def test_end_to_end():
     """

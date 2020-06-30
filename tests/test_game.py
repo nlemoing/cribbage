@@ -1,4 +1,5 @@
-from cribbage.simulate import peg, GameContext, PEG_POINTS
+from cribbage.game import peg, GameContext
+from cribbage.constants import PEG_POINTS
 from cribbage.strategies import FirstStrategy
 from cribbage.deck import RandomDeck
 from typing import List
