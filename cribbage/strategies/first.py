@@ -7,7 +7,7 @@ class FirstStrategy(Strategy):
     testing. It behaves similarly to RandomStrategy when the Deck is random.
     """
 
-    def chooseHand(self, options: List[int]) -> List[int]:
+    def chooseHand(self, options: List[int], crib: bool) -> List[int]:
         return options[:4]
 
     def peg(self, hand: List[int], player: int, previousCards: List[List[Tuple[int]]]) -> int:

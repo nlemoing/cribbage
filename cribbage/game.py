@@ -88,12 +88,12 @@ def game(strat1: Strategy, strat2: Strategy, crib: int, point_cap: int, verbose:
         crib_hand = []
 
         # Choose strat1 hand
-        hand1 = strat1.chooseHand(options1)
+        hand1 = strat1.chooseHand(options1, 1 - crib)
         assert(all(card in options1 for card in hand1))
         crib_hand.extend(card for card in options1 if card not in hand1)
 
         # Choose strat2 hand
-        hand2 = strat2.chooseHand(options2)
+        hand2 = strat2.chooseHand(options2, crib)
         assert(all(card in options2 for card in hand2))
         crib_hand.extend(card for card in options2 if card not in hand2)
 

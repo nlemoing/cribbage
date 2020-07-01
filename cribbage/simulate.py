@@ -23,10 +23,10 @@ def simulateHandChoice(strat: Strategy, iterations: int) -> pd.DataFrame:
     those depend on the choices from another strategy.
     """
     deck = RandomDeck()
-    fields = [f'hand_{i+1}' for i in range(4)] + ['discarded_1', 'discarded_2', 'cutCard', 'score']
-    def _score():
+    fields = [f'hand_{i+1}' for i in range(4)] + ['discarded_1', 'discarded_2', 'cutCard', 'crib', 'score']
+    def _score(crib: bool) -> pd.Series:
         hand, _, cutCard = deck.deal()
-        options = strat.chooseHand(hand)
+        options = strat.chooseHand(hand, crib)
         discarded = [c for c in hand if c not in options]
-        return pd.Series(options + discarded + [cutCard, scoreHand(options, cutCard)], index=fields)
-    return pd.DataFrame(_score() for _ in range(iterations))
+        return pd.Series(options + discarded + [cutCard, crib, scoreHand(options, cutCard)], index=fields)
+    return pd.DataFrame(_score(i % 2) for i in range(iterations))

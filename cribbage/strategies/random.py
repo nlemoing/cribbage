@@ -8,7 +8,7 @@ class RandomStrategy(Strategy):
     making it the easiest strategy to implement (and also the worst).
     """
 
-    def chooseHand(self, options: List[int]) -> List[int]:
+    def chooseHand(self, options: List[int], crib: bool) -> List[int]:
         return sample(options, 4)
 
     def peg(self, hand: List[int], player: int, previousCards: List[List[Tuple[int]]]) -> int:
