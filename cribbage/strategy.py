@@ -9,13 +9,14 @@ class Strategy:
     previously played cards and returns a card to play next. 
     Besides that, anything goes!
     """
-    def chooseHand(self, options: List[int]) -> List[int]:
+    def chooseHand(self, options: List[int], crib: bool) -> List[int]:
         """
         chooseHand expects an array of integers with length 6 that represents
         a set of 6 cards from which to choose a hand. It should return a list
         of 4 cards that are kept. The list should be made up of the same
         elements as were in the original list, but this can't be enforced here
-        so we'll also do sanity checks when running simulations. 
+        so we'll also do sanity checks when running simulations. It also has a
+        parameter to indicate whether the crib belongs to the player.
         """
         pass
 

@@ -8,7 +8,8 @@ class HumanStrategy(Strategy):
     select pegging and hand cards using IO inputs
     """
 
-    def chooseHand(self, options: List[int]) -> List[int]:
+    def chooseHand(self, options: List[int], crib: bool) -> List[int]:
+        print(f"It is {'' if crib else ' not'} your crib.")
         print("Choose your hand by typing the numbers corresponding to the cards you want, separated by spaces.")
         chosen = input("\n".join(f"{i}: {formatCard(options[i])}" for i in range(len(options))) + "\n")
         return [options[int(option)] for option in chosen.split(" ")] 
