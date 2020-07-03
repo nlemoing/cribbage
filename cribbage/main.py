@@ -1,8 +1,10 @@
 import argparse
 import pathlib
+from cribbage.simulate import simulate
 from cribbage.strategies import strategies
 from cribbage.constants import POINT_CAP
 from cribbage.logger import logger, setLogLevel
+from cribbage.analysis import analyze_game
 
 STRATEGY_NAMES = tuple(strategies.keys())
 STRATEGIES_MESSAGE = "\n\n".join(f"{k}: {v.__doc__}" for k, v in strategies.items())
@@ -18,7 +20,15 @@ game.add_argument("strategy2", help="Player 2 Strategy", choices=STRATEGY_NAMES)
 game.add_argument("-pc", "--point-cap", help=f"Score to play the game to (default {POINT_CAP})", default=121)
 
 def handle_game(args, output):
-    pass
+    df = simulate(
+        strategies[args.strategy1],
+        strategies[args.strategy2],
+        args.iterations,
+        args.point_cap,
+    )
+    df.to_csv(f'{output}/raw_game_data.csv')
+    analysis = analyze_game(df)
+    analysis.to_csv(f'{output}/game_analysis.csv')
 game.set_defaults(func=handle_game)
 
 # Hand choice parser
