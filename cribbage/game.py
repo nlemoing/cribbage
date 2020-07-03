@@ -3,7 +3,8 @@ from cribbage.score import scoreHand, scorePeg, value
 from cribbage.io import formatCard
 from cribbage.deck import Deck, RandomDeck
 from cribbage.logger import logger, setLogLevel
-from cribbage.constants import TURNS, WINNER, TOTAL_POINTS, HAND_POINTS, CRIB_POINTS, PEG_POINTS, JACK_POINTS, PEG_CAP
+from cribbage.constants import TURNS, WINNER, CRIB, \
+    TOTAL_POINTS, HAND_POINTS, CRIB_POINTS, PEG_POINTS, JACK_POINTS, PEG_CAP
 import pandas as pd
 from typing import List
 
@@ -13,7 +14,7 @@ class GameContext:
     def __init__(self, crib: int, point_cap: int, deck: Deck):
         self.scores = [pd.Series(START_DICT), pd.Series(START_DICT)]
         self.deck = deck
-        self.crib = crib
+        self.crib = self.start_crib = crib
         self.turns = 0
         self.point_cap = point_cap
     
@@ -66,9 +67,10 @@ class GameContext:
 
         result = pd.Series({ f'strat{p+1}_{k}': v for p, d in enumerate(self.scores) for k, v in d.iteritems() })
         result[TURNS] = self.turns
+        result[CRIB] = self.start_crib
         return result
 
-def game(strat1: Strategy, strat2: Strategy, crib: int, point_cap: int, verbose: bool = False) -> pd.Series:
+def game(strat1: Strategy, strat2: Strategy, crib: int, point_cap: int) -> pd.Series:
     """
     This function takes care of actual game simulation. crib is 1 if strat2
     starts with the crib and 0 otherwise.
@@ -79,7 +81,6 @@ def game(strat1: Strategy, strat2: Strategy, crib: int, point_cap: int, verbose:
      - strat1_peg: the number of points strat1 gained from pegging
      - ... all the same fields for strat2 ...
     """
-    setLogLevel(verbose)
 
     game_context = GameContext(crib, point_cap, RandomDeck())
 

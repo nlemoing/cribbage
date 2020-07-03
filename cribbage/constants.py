@@ -1,5 +1,6 @@
 TURNS = 'turns'
 WINNER = 'winner'
+CRIB = 'crib_start'
 TOTAL_POINTS = 'total_points'
 HAND_POINTS = 'hand_points'
 CRIB_POINTS = 'crib_points'
