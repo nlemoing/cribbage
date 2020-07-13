@@ -4,7 +4,7 @@ from cribbage.simulate import simulate, simulateHandChoice
 from cribbage.strategies import strategies
 from cribbage.constants import POINT_CAP
 from cribbage.logger import logger, setLogLevel
-from cribbage.analysis import analyze_game
+from cribbage.analysis import analyze_game, create_hand_histogram
 
 STRATEGY_NAMES = tuple(strategies.keys())
 STRATEGIES_MESSAGE = "\n\n".join(f"{k}: {v.__doc__}" for k, v in strategies.items())
@@ -38,6 +38,8 @@ hand_choice.add_argument("strategy", help="Strategy", choices=STRATEGY_NAMES)
 def handle_hand_choice(args, output):
     df = simulateHandChoice(strategies[args.strategy], args.iterations)
     df.to_csv(f'{output}/raw_hand_data.csv')
+    hist = create_hand_histogram(df)
+    hist.to_csv(f'{output}/hand_score_histogram.csv')
 hand_choice.set_defaults(func=handle_hand_choice)
 
 parser.add_argument("-i", "--iterations", type=int, default=1, help="Number of iterations to run (default 1)")
