@@ -1,6 +1,6 @@
 import argparse
 import pathlib
-from cribbage.simulate import simulate
+from cribbage.simulate import simulate, simulateHandChoice
 from cribbage.strategies import strategies
 from cribbage.constants import POINT_CAP
 from cribbage.logger import logger, setLogLevel
@@ -36,7 +36,8 @@ hand_choice = subparsers.add_parser("hand-choice", help="Choose a hand from 6 ca
 hand_choice.add_argument("strategy", help="Strategy", choices=STRATEGY_NAMES)
 
 def handle_hand_choice(args, output):
-    pass
+    df = simulateHandChoice(strategies[args.strategy], args.iterations)
+    df.to_csv(f'{output}/raw_hand_data.csv')
 hand_choice.set_defaults(func=handle_hand_choice)
 
 parser.add_argument("-i", "--iterations", type=int, default=1, help="Number of iterations to run (default 1)")
